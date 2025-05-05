@@ -317,5 +317,5 @@ function showError(message) {
 // Initial fetch
 fetchDiscordData()
 
-// Refresh data every 30 seconds
-setInterval(fetchDiscordData, 30000)
+// Refresh data every 5 seconds
+setInterval(fetchDiscordData, 5000)
