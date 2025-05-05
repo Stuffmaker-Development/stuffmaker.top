@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bio Page</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/akar-icons-fonts"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="profile-section">
+            <div class="discord-card">
+                <div class="discord-header">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19.2701 5.31C17.9901 4.7 16.6001 4.2 15.1201 4C14.9701 4.3 14.7901 4.7 14.6701 5.1C13.0901 4.9 11.5301 4.9 10.0001 5.1C9.88008 4.7 9.70008 4.3 9.54008 4C8.06008 4.2 6.67008 4.7 5.39008 5.31C2.83008 9.14 2.11008 12.87 2.47008 16.55C4.17008 17.84 5.80008 18.63 7.40008 19.14C7.74008 18.65 8.04008 18.12 8.29008 17.57C7.73008 17.35 7.20008 17.08 6.70008 16.77C6.82008 16.67 6.94008 16.57 7.05008 16.47C9.78008 17.75 12.8001 17.75 15.4901 16.47C15.6001 16.57 15.7201 16.67 15.8401 16.77C15.3401 17.08 14.8101 17.35 14.2501 17.57C14.5001 18.12 14.8001 18.65 15.1401 19.14C16.7401 18.63 18.3701 17.84 20.0701 16.55C20.4901 12.27 19.3701 8.57 17.2701 5.31H19.2701ZM8.52008 14.35C7.70008 14.35 7.03008 13.58 7.03008 12.65C7.03008 11.72 7.68008 10.95 8.52008 10.95C9.36008 10.95 10.0301 11.72 10.0101 12.65C10.0101 13.58 9.36008 14.35 8.52008 14.35ZM15.4801 14.35C14.6601 14.35 13.9901 13.58 13.9901 12.65C13.9901 11.72 14.6401 10.95 15.4801 10.95C16.3201 10.95 16.9901 11.72 16.9701 12.65C16.9701 13.58 16.3201 14.35 15.4801 14.35Z" fill="#5865F2"/>
+                    </svg>
+                    <span>Discord Presence</span>
+                </div>
+                <div class="discord-profile">
+                    <div class="profile-image-container">
+                        <img id="profile-image" src="https://via.placeholder.com/128" alt="Discord Profile Picture">
+                        <div id="status-indicator" class="status-indicator"></div>
+                    </div>
+                    <div class="profile-info">
+                        <h2 id="username">Loading...</h2>
+                        <p id="status">Loading status...</p>
+                    </div>
+                </div>
+                <div id="activity-container" class="activity-container">
+                    <div class="activity-header">ACTIVITY</div>
+                    <div id="activity" class="activity">
+                        <p>Loading activity...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bio-section">
+            <h1>About Me</h1>
+            <p>Hey there! I'm a passionate developer and tech enthusiast. When I'm not coding, you can find me gaming, exploring new things, or hanging out on Discord.</p>
+            
+            <div class="bio-details">
+                <div class="bio-item">
+                    <h3>Skills</h3>
+                    <ul>
+                        <li>Web Development</li>
+                        <li>Random Shit</li>
+                        <li>JavaScript(a bit)</li>
+                        <li>Balls :)</li>
+                    </ul>
+                </div>
+                
+                <div class="bio-item">
+                    <h3>Interests</h3>
+                    <ul>
+                        <li>Gaming</li>
+                        <li>Music(🤘)</li>
+                        <li>Technology(Especially Hardware)</li>
+                        <li>Open Source Stuff</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="contact-links">
+                <a href="https://github.com/MrStuffmaker" class="contact-link">
+                    <i class="ai-github-fill"></i>
+                    GitHub
+                </a>
+                <a href="mailto:support@stuffmaker.org" class="contact-link">
+                   <i class="ai-envelope"></i>
+                    E-Mail
+                </a>
+                <a href="https://tx.me/MrStuffmaker" class="contact-link">
+                    <i class="ai-telegram-fill"></i>
+                    Telegram
+                </a>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
