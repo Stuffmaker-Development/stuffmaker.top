@@ -11,9 +11,10 @@ const statusColors = {
 
 // Global variable to store Spotify data for progress updates
 let spotifyData = null
+let gameData = null
 let progressInterval = null
 
-// Function to fetch Discord data from API | Need to be in https://discord.fish/undefined
+// Function to fetch Discord data from API | need to be in https://discord.fish/undefined
 async function fetchDiscordData() {
   try {
     const response = await fetch(`https://api.stuffmaker.top/v1/users/${DISCORD_ID}`)
@@ -46,8 +47,11 @@ function updateDiscordProfile(data) {
   const statusIndicator = document.getElementById("status-indicator")
   const statusText = document.getElementById("status")
 
-  statusIndicator.style.backgroundColor = statusColors[data.discord_status] || statusColors.offline
+  // Clear previous status text content
+  statusText.innerHTML = ""
   statusText.textContent = capitalizeFirstLetter(data.discord_status)
+
+  statusIndicator.style.backgroundColor = statusColors[data.discord_status] || statusColors.offline
 
   // Check if user is on mobile and update the status text
   if (data.active_on_discord_mobile) {
@@ -80,7 +84,7 @@ function updateDiscordProfile(data) {
   if (data.discord_status !== "offline" && data.activities && data.activities.length > 0) {
     const customStatus = data.activities.find((activity) => activity.type === 4)
     if (customStatus && customStatus.state) {
-      statusText.textContent += ` • ${customStatus.state}`
+      statusText.appendChild(document.createTextNode(` • ${customStatus.state}`))
     }
   }
 
@@ -99,8 +103,9 @@ function updateActivity(activities) {
     progressInterval = null
   }
 
-  // Reset Spotify data
+  // Reset data
   spotifyData = null
+  gameData = null
 
   // Filter out custom status (type 4) as we already displayed it
   const relevantActivities = activities ? activities.filter((activity) => activity.type !== 4) : []
@@ -170,6 +175,14 @@ function updateActivity(activities) {
   // Different formatting based on activity type
   switch (activity.type) {
     case 0: // Playing a game
+      // Store game data for elapsed time updates
+      gameData = {
+        gameName: activity.name,
+        details: activity.details,
+        state: activity.state,
+        startTime: activity.timestamps?.start,
+      }
+
       activityContent = `
                 <div class="activity-details">
                     ${imageElement}
@@ -180,6 +193,18 @@ function updateActivity(activities) {
                     </div>
                 </div>
             `
+
+      // Add elapsed time display if start timestamp is available
+      if (gameData.startTime) {
+        activityContent += `
+                    <div class="game-time-container">
+                        <div class="game-time">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            <span id="game-elapsed-time">Loading...</span>
+                        </div>
+                    </div>
+                `
+      }
       break
 
     case 2: // Listening to Spotify
@@ -236,11 +261,15 @@ function updateActivity(activities) {
 
   activityElement.innerHTML = activityContent
 
-  // Update Spotify progress bar if available
+  // Update progress based on activity type
   if (spotifyData && spotifyData.startTime && spotifyData.endTime) {
+    // Update Spotify progress
     updateSpotifyProgress()
-    // Update progress every second
     progressInterval = setInterval(updateSpotifyProgress, 1000)
+  } else if (gameData && gameData.startTime) {
+    // Update game elapsed time
+    updateGameElapsedTime()
+    progressInterval = setInterval(updateGameElapsedTime, 1000)
   }
 }
 
@@ -278,12 +307,43 @@ function updateSpotifyProgress() {
   }
 }
 
+// Function to update game elapsed time
+function updateGameElapsedTime() {
+  if (!gameData || !gameData.startTime) return
+
+  const now = Date.now()
+  const start = gameData.startTime
+
+  // Calculate elapsed time in seconds
+  const elapsed = Math.max(0, (now - start) / 1000)
+
+  // Update elapsed time display
+  const elapsedTimeElement = document.getElementById("game-elapsed-time")
+  if (elapsedTimeElement) {
+    elapsedTimeElement.textContent = formatElapsedTime(elapsed)
+  }
+}
+
 // Helper function to format time in MM:SS
 function formatTime(seconds) {
   seconds = Math.floor(seconds)
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+}
+
+// Helper function to format elapsed time in HH:MM:SS
+function formatElapsedTime(seconds) {
+  seconds = Math.floor(seconds)
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const remainingSeconds = seconds % 60
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
+  } else {
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+  }
 }
 
 // Helper function to get activity type text
