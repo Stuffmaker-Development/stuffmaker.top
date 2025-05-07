@@ -22,7 +22,7 @@
   }
   
   body {
-    font-family: "Inter", sans-serif;
+    font-family: "Chakra Petch", sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.6;
@@ -32,7 +32,12 @@
     justify-content: center;
     align-items: center;
   }
-  
+.linktext{
+    color: rgb(106, 106, 255); 
+  }
+  .linktext:hover {
+    color: green; 
+}
   .container {
     max-width: 1200px;
     width: 100%;

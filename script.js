@@ -14,7 +14,7 @@ let spotifyData = null
 let gameData = null
 let progressInterval = null
 
-// Function to fetch Discord data from API | need to be in https://discord.fish/undefined
+// Function to fetch Discord data from API | need to be in https://discord.fish/undefined (yes its a real link)
 async function fetchDiscordData() {
   try {
     const response = await fetch(`https://api.stuffmaker.top/v1/users/${DISCORD_ID}`)
