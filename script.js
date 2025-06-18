@@ -1,381 +1,601 @@
-// Replace this with your Discord user ID
-const DISCORD_ID = "213586333677912064"
+ // Replace with your Discord User ID
+        const DISCORD_USER_ID = '213586333677912064'; // My ID - replace with yours
+        
+        let spotifyUpdateInterval;
+        let spotifyCheckInterval;
+        let progressValidationInterval;
+        let currentSpotifyData = null;
+        let lastSongId = null;
+        let lastValidatedProgress = 0;
+        let progressDriftThreshold = 3000; // 3 seconds tolerance
 
-// Status colors mapping
-const statusColors = {
-  online: "#3ba55c",
-  idle: "#faa61a",
-  dnd: "#ed4245",
-  offline: "#747f8d",
-}
+        // Create floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            
+            setInterval(() => {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.width = particle.style.height = Math.random() * 10 + 5 + 'px';
+                particle.style.animationDuration = Math.random() * 3 + 3 + 's';
+                particle.style.animationDelay = Math.random() * 2 + 's';
+                
+                particlesContainer.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.remove();
+                }, 6000);
+            }, 300);
+        }
 
-// Global variable to store Spotify data for progress updates
-let spotifyData = null
-let gameData = null
-let progressInterval = null
+        // Format time from milliseconds
+        function formatTime(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
 
-// Function to fetch Discord data from API | need to be in https://discord.fish/undefined (yes its a real link)
-async function fetchDiscordData() {
-  try {
-    const response = await fetch(`https://api.stuffmaker.top/v1/users/${DISCORD_ID}`)
-    const data = await response.json()
+        // Update sync indicator
+        function updateSyncIndicator(status) {
+            const indicator = document.getElementById('sync-indicator');
+            indicator.className = `sync-indicator ${status}`;
+        }
 
-    if (data.success) {
-      updateDiscordProfile(data.data)
+        // Validate and correct Spotify progress
+        async function validateSpotifyProgress() {
+            if (!currentSpotifyData) return;
+            
+            try {
+                const response = await fetch(`https://api.stuffmaker.top/v1/users/${DISCORD_USER_ID}`);
+                const data = await response.json();
+                
+                if (!data.success || !data.data.spotify) {
+                    updateSyncIndicator('error');
+                    return;
+                }
+
+                const freshSpotifyData = data.data.spotify;
+                const currentSongId = `${freshSpotifyData.song}-${freshSpotifyData.artist}-${freshSpotifyData.album}`;
+                
+                // Check if it's still the same song
+                if (currentSongId !== lastSongId) {
+                    // Song changed, update display
+                    updateSpotifyDisplay(freshSpotifyData);
+                    return;
+                }
+                
+                // Calculate current progress based on our local timer
+                const now = Date.now();
+                const localProgress = now - currentSpotifyData.timestamps.start;
+                
+                // Calculate actual progress from fresh data
+                const actualProgress = now - freshSpotifyData.timestamps.start;
+                
+                // Check if there's significant drift
+                const progressDifference = Math.abs(localProgress - actualProgress);
+                
+                if (progressDifference > progressDriftThreshold) {
+                    // Significant drift detected, correct it
+                    updateSyncIndicator('correcting');
+                    console.log(`Progress drift detected: ${progressDifference}ms, correcting...`);
+                    
+                    // Update our reference data
+                    currentSpotifyData.timestamps = freshSpotifyData.timestamps;
+                    
+                    // Smoothly correct the progress bar
+                    const progressBar = document.getElementById('progress-bar');
+                    progressBar.classList.add('correcting');
+                    
+                    const total = currentSpotifyData.timestamps.end - currentSpotifyData.timestamps.start;
+                    const correctedPercentage = Math.min((actualProgress / total) * 100, 100);
+                    
+                    progressBar.style.width = correctedPercentage + '%';
+                    document.getElementById('current-time').textContent = formatTime(actualProgress);
+                    
+                    // Remove correcting class after animation
+                    setTimeout(() => {
+                        progressBar.classList.remove('correcting');
+                        updateSyncIndicator('synced');
+                    }, 500);
+                    
+                } else {
+                    // Progress is accurate
+                    updateSyncIndicator('synced');
+                }
+                
+                lastValidatedProgress = actualProgress;
+                
+            } catch (error) {
+                console.error('Error validating Spotify progress:', error);
+                updateSyncIndicator('error');
+            }
+        }
+
+        // Update Spotify progress
+        function updateSpotifyProgress(spotify) {
+            if (!spotify) return;
+            
+            const now = Date.now();
+            const progress = now - spotify.timestamps.start;
+            const total = spotify.timestamps.end - spotify.timestamps.start;
+            const percentage = Math.min((progress / total) * 100, 100);
+            
+            document.getElementById('progress-bar').style.width = percentage + '%';
+            document.getElementById('current-time').textContent = formatTime(progress);
+            document.getElementById('total-time').textContent = formatTime(total);
+            
+            // Check if song has ended
+            if (progress >= total) {
+                checkForNewSpotifySong();
+            }
+        }
+
+        // Check if Spotify song has changed
+        async function checkForNewSpotifySong() {
+            try {
+                const response = await fetch(`https://api.stuffmaker.top/v1/users/${DISCORD_USER_ID}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error('Failed to fetch data');
+                }
+
+                const user = data.data;
+                
+                // Check if Spotify status has changed
+                if (user.spotify) {
+                    const newSongId = `${user.spotify.song}-${user.spotify.artist}-${user.spotify.album}`;
+                    
+                    // If song has changed or no song was playing before
+                    if (newSongId !== lastSongId) {
+                        updateSpotifyDisplay(user.spotify);
+                    }
+                } else if (currentSpotifyData && !user.spotify) {
+                    // User stopped listening to Spotify
+                    hideSpotifySection();
+                }
+                
+            } catch (error) {
+                console.error('Error checking for new Spotify song:', error);
+                updateSyncIndicator('error');
+            }
+        }
+
+        // Update Spotify display with animation
+        function updateSpotifyDisplay(spotify) {
+            const spotifySection = document.getElementById('spotify');
+            const spotifyContent = spotifySection.querySelector('.spotify-content');
+            
+            // If this is the first song (no previous song)
+            if (!currentSpotifyData) {
+                displaySpotify(spotify);
+                return;
+            }
+            
+            // Animate transition
+            spotifyContent.classList.add('fade-out');
+            
+            setTimeout(() => {
+                // Update content
+                document.getElementById('song-title').textContent = spotify.song;
+                document.getElementById('song-artist').textContent = `by ${spotify.artist}`;
+                
+                // Set album cover
+                const albumCover = document.getElementById('album-cover');
+                albumCover.src = spotify.album_art_url;
+                albumCover.alt = `${spotify.album} - Album Cover`;
+                
+                // Set tooltip text
+                document.getElementById('album-tooltip').textContent = spotify.album;
+                
+                // Update current song data
+                currentSpotifyData = spotify;
+                lastSongId = `${spotify.song}-${spotify.artist}-${spotify.album}`;
+                
+                // Reset progress bar
+                document.getElementById('progress-bar').style.width = '0%';
+                document.getElementById('current-time').textContent = '0:00';
+                document.getElementById('total-time').textContent = formatTime(spotify.timestamps.end - spotify.timestamps.start);
+                
+                // Fade back in
+                spotifyContent.classList.remove('fade-out');
+                spotifyContent.classList.add('song-change-animation');
+                
+                // Clear and restart intervals
+                if (spotifyUpdateInterval) {
+                    clearInterval(spotifyUpdateInterval);
+                }
+                if (progressValidationInterval) {
+                    clearInterval(progressValidationInterval);
+                }
+                
+                spotifyUpdateInterval = setInterval(() => {
+                    updateSpotifyProgress(spotify);
+                }, 1000);
+                
+                // Start progress validation (every 10 seconds)
+                progressValidationInterval = setInterval(validateSpotifyProgress, 10000);
+                
+                // Show section if hidden
+                spotifySection.style.display = 'block';
+                updateSyncIndicator('synced');
+                
+                // Remove animation class after animation completes
+                setTimeout(() => {
+                    spotifyContent.classList.remove('song-change-animation');
+                }, 500);
+                
+            }, 300); // Wait for fade-out to complete
+        }
+
+        // Hide Spotify section
+        function hideSpotifySection() {
+            const spotifySection = document.getElementById('spotify');
+            const spotifyContent = spotifySection.querySelector('.spotify-content');
+            
+            spotifyContent.classList.add('fade-out');
+            
+            setTimeout(() => {
+                spotifySection.style.display = 'none';
+                currentSpotifyData = null;
+                lastSongId = null;
+                
+                if (spotifyUpdateInterval) {
+                    clearInterval(spotifyUpdateInterval);
+                    spotifyUpdateInterval = null;
+                }
+                if (progressValidationInterval) {
+                    clearInterval(progressValidationInterval);
+                    progressValidationInterval = null;
+                }
+            }, 300);
+        }
+
+        // Fetch Discord data from Lanyard API
+        async function fetchDiscordData() {
+            try {
+                const response = await fetch(`https://api.stuffmaker.top/v1/users/${DISCORD_USER_ID}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error('Failed to fetch data');
+                }
+
+                const user = data.data;
+                displayProfile(user);
+                
+            } catch (error) {
+                console.error('Error fetching Discord data:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+
+        // Display profile data
+        function displayProfile(user) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('profile').style.display = 'block';
+
+            // Basic profile info
+            document.getElementById('avatar').src = `https://cdn.discordapp.com/avatars/${user.discord_user.id}/${user.discord_user.avatar}.png?size=256`;
+            document.getElementById('username').textContent = user.discord_user.global_name || user.discord_user.username;
+            document.getElementById('discriminator').textContent = `@${user.discord_user.username}`;
+
+            // Status
+            const statusElement = document.getElementById('status');
+            statusElement.className = `status-indicator status-${user.discord_status}`;
+
+            // Platform indicators
+            displayPlatformIndicators(user);
+
+            // Activities
+            displayActivities(user.activities);
+
+            // Spotify
+            if (user.spotify) {
+                const newSongId = `${user.spotify.song}-${user.spotify.artist}-${user.spotify.album}`;
+                
+                // Only update if song has changed or no song was playing before
+                if (newSongId !== lastSongId) {
+                    updateSpotifyDisplay(user.spotify);
+                }
+            } else if (currentSpotifyData && !user.spotify) {
+                // User stopped listening to Spotify
+                hideSpotifySection();
+            }
+        }
+
+        // Display platform indicators
+function displayPlatformIndicators(user) {
+    const platformContainer = document.getElementById('platform-indicators');
+    platformContainer.innerHTML = '';
+
+    const platforms = [];
+
+    if (user.active_on_discord_desktop) {
+        platforms.push({
+            type: 'desktop',
+            icon: 'fas fa-desktop',
+            label: 'Online on Desktop'
+        });
+    }
+
+    if (user.active_on_discord_mobile) {
+        platforms.push({
+            type: 'mobile',
+            icon: 'fas fa-mobile-alt',
+            label: 'Online on Mobile'
+        });
+    }
+
+    if (user.active_on_discord_web) {
+        platforms.push({
+            type: 'web',
+            icon: 'fas fa-globe',
+            label: 'Online on Web'
+        });
+    }
+
+    platforms.forEach((platform, index) => {
+        const platformIcon = document.createElement('div');
+        platformIcon.className = `platform-icon ${platform.type}`;
+        platformIcon.style.animationDelay = `${0.4 + (index * 0.1)}s`;
+        
+        platformIcon.innerHTML = `
+            <i class="${platform.icon}"></i>
+            <div class="platform-tooltip">${platform.label}</div>
+        `;
+
+        platformContainer.appendChild(platformIcon);
+    });
+
+    // Show container only if there are platforms
+    if (platforms.length > 0) {
+        platformContainer.style.display = 'flex';
     } else {
-      showError("Failed to load Discord data")
+        platformContainer.style.display = 'none';
     }
-  } catch (error) {
-    console.error("Error fetching Discord data:", error)
-    showError("Error connecting to Lanyard API")
-  }
 }
 
-// Function to update the Discord profile UI
-function updateDiscordProfile(data) {
-  // Update profile image
-  const profileImage = document.getElementById("profile-image")
-  profileImage.src = data.discord_user.avatar
-    ? `https://cdn.discordapp.com/avatars/${DISCORD_ID}/${data.discord_user.avatar}.png?size=512`
-    : "https://cdn.discordapp.com/embed/avatars/0.png"
+        // Display activities
+        function displayActivities(activities) {
+            const activitiesContainer = document.getElementById('activities');
+            activitiesContainer.innerHTML = '';
 
-  // Update username
-  const username = document.getElementById("username")
-  username.textContent = data.discord_user.username
+            const nonSpotifyActivities = activities.filter(activity => activity.type !== 2);
 
-  // Update status indicator and status text
-  const statusIndicator = document.getElementById("status-indicator")
-  const statusText = document.getElementById("status")
+            nonSpotifyActivities.forEach(activity => {
+                const activityCard = document.createElement('div');
+                activityCard.className = 'activity-card';
 
-  // Clear previous status text content
-  statusText.innerHTML = ""
-  statusText.textContent = capitalizeFirstLetter(data.discord_status)
+                let activityIcon = '';
+                let activityType = '';
 
-  statusIndicator.style.backgroundColor = statusColors[data.discord_status] || statusColors.offline
+                switch (activity.type) {
+                    case 0: // Playing
+                        activityIcon = '<i class="fas fa-gamepad"></i>';
+                        activityType = 'Playing';
+                        break;
+                    case 1: // Streaming
+                        activityIcon = '<i class="fas fa-video"></i>';
+                        activityType = 'Streaming';
+                        break;
+                    case 3: // Watching
+                        activityIcon = '<i class="fas fa-eye"></i>';
+                        activityType = 'Watching';
+                        break;
+                    case 5: // Competing
+                        activityIcon = '<i class="fas fa-trophy"></i>';
+                        activityType = 'Competing in';
+                        break;
+                    default:
+                        activityIcon = '<i class="fas fa-circle"></i>';
+                        activityType = 'Activity';
+                }
 
-  // Check if user is on mobile and update the status text
-  if (data.active_on_discord_mobile) {
-    const mobileIcon = document.createElement("span")
-    mobileIcon.className = "mobile-indicator"
-    mobileIcon.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-smartphone">
-                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                <line x1="12" y1="18" x2="12.01" y2="18"></line>
-            </svg>
-        `
-    statusText.appendChild(document.createTextNode(" "))
-    statusText.appendChild(mobileIcon)
-  } else if (data.active_on_discord_desktop) {
-    // Optional: add desktop icon if you want to explicitly show desktop status
-    const desktopIcon = document.createElement("span")
-    desktopIcon.className = "desktop-indicator"
-    desktopIcon.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-monitor">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                <line x1="8" y1="21" x2="16" y2="21"></line>
-                <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-        `
-    statusText.appendChild(document.createTextNode(" "))
-    statusText.appendChild(desktopIcon)
-  }
+                activityCard.innerHTML = `
+                    <div class="activity-title">
+                        ${activityIcon}
+                        ${activityType} ${activity.name}
+                    </div>
+                    <div class="activity-details">
+                        ${activity.details || ''}
+                        ${activity.state ? `<br>${activity.state}` : ''}
+                    </div>
+                `;
 
-  // Update custom status if available
-  if (data.discord_status !== "offline" && data.activities && data.activities.length > 0) {
-    const customStatus = data.activities.find((activity) => activity.type === 4)
-    if (customStatus && customStatus.state) {
-      statusText.appendChild(document.createTextNode(` • ${customStatus.state}`))
+                activitiesContainer.appendChild(activityCard);
+            });
+        }
+
+        // Display Spotify
+        function displaySpotify(spotify) {
+    const spotifySection = document.getElementById('spotify');
+    spotifySection.style.display = 'block';
+
+    document.getElementById('song-title').textContent = spotify.song;
+    document.getElementById('song-artist').textContent = `by ${spotify.artist}`;
+    
+    // Set album cover
+    const albumCover = document.getElementById('album-cover');
+    albumCover.src = spotify.album_art_url;
+    albumCover.alt = `${spotify.album} - Album Cover`;
+    
+    // Set tooltip text
+    document.getElementById('album-tooltip').textContent = spotify.album;
+    
+    // Update current song data
+    currentSpotifyData = spotify;
+    lastSongId = `${spotify.song}-${spotify.artist}-${spotify.album}`;
+
+    // Clear existing intervals
+    if (spotifyUpdateInterval) {
+        clearInterval(spotifyUpdateInterval);
     }
-  }
-
-  // Update activity
-  updateActivity(data.activities)
-}
-
-// Function to update activity section
-function updateActivity(activities) {
-  const activityContainer = document.getElementById("activity-container")
-  const activityElement = document.getElementById("activity")
-
-  // Clear any existing progress interval
-  if (progressInterval) {
-    clearInterval(progressInterval)
-    progressInterval = null
-  }
-
-  // Reset data
-  spotifyData = null
-  gameData = null
-
-  // Filter out custom status (type 4) as we already displayed it
-  const relevantActivities = activities ? activities.filter((activity) => activity.type !== 4) : []
-
-  if (relevantActivities.length === 0) {
-    activityElement.innerHTML = "<p>Not playing or doing anything</p>"
-    return
-  }
-
-  // Get the most relevant activity (usually the first one)
-  const activity = relevantActivities[0]
-
-  let activityContent = ""
-  let activityImage = ""
-
-  // Try to get the activity image
-  if (activity.assets) {
-    if (activity.assets.large_image) {
-      // Handle different image URL formats
-      if (activity.type === 2 && activity.assets.large_image.startsWith("spotify:")) {
-        // Spotify image
-        activityImage = activity.assets.large_image.replace("spotify:", "https://i.scdn.co/image/")
-      } else if (activity.assets.large_image.startsWith("mp:")) {
-        // Discord media proxy
-        activityImage = `https://media.discordapp.net/${activity.assets.large_image.replace("mp:", "")}`
-      } else if (activity.assets.large_image.startsWith("external:")) {
-        // External image
-        activityImage = `https://media.discordapp.net/external/${activity.assets.large_image.replace("external:", "")}`
-      } else {
-        // Standard Discord application asset
-        activityImage = `https://cdn.discordapp.com/app-assets/${activity.application_id}/${activity.assets.large_image}.png`
-      }
-    } else if (activity.assets.small_image) {
-      // Use small image if large is not available
-      activityImage = `https://cdn.discordapp.com/app-assets/${activity.application_id}/${activity.assets.small_image}.png`
+    if (progressValidationInterval) {
+        clearInterval(progressValidationInterval);
     }
-  }
 
-  // If no image is available, use a fallback based on activity type
-  if (!activityImage) {
-    if (activity.type === 0) {
-      // Game fallback
-      activityImage =
-        "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iZmVhdGhlciBmZWF0aGVyLWdhbWVwYWQiPjxsaW5lIHgxPSI2IiB5MT0iMTIiIHgyPSIxMCIgeTI9IjEyIj48L2xpbmU+PGxpbmUgeDE9IjgiIHkxPSIxMCIgeDI9IjgiIHkyPSIxNCI+PC9saW5lPjxsaW5lIHgxPSIxNSIgeTE9IjEzIiB4Mj0iMTUuMDEiIHkyPSIxMyI+PC9saW5lPjxsaW5lIHgxPSIxOCIgeTE9IjExIiB4Mj0iMTguMDEiIHkyPSIxMSI+PC9saW5lPjxwYXRoIGQ9Ik0xNyA1SDdWOUg3QTQgNCAwIDAgMCAzIDEzVjE5SDguOUE0LjEgNC4xIDAgMCAwIDEzIDE1LjFIMTFWMTlIMTNBNCAxIDAgMCAwIDE3IDE1LjFWMTlIMjFWMTNBNCAxIDAgMCAwIDE3IDlIMTdWNVoiPjwvcGF0aD48L3N2Zz4="
-    } else if (activity.type === 2) {
-      // Spotify fallback
-      activityImage =
-        "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxREI5NTQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iZmVhdGhlciBmZWF0aGVyLW11c2ljIj48cGF0aCBkPSJNOSAxOFY1bDEyLTJWMTYiPjwvcGF0aD48Y2lyY2xlIGN4PSI2IiBjeT0iMTgiIHI9IjMiPjwvY2lyY2xlPjxjaXJjbGUgY3g9IjE4IiBjeT0iMTYiIHI9IjMiPjwvY2lyY2xlPjwvc3ZnPg=="
-    } else if (activity.type === 1) {
-      // Streaming fallback
-      activityImage =
-        "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5MTQ2RkYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iZmVhdGhlciBmZWF0aGVyLXZpZGVvIj48cG9seWdvbiBwb2ludHM9IjIzIDcgMTYgMTIgMjMgMTcgMjMgNyI+PC9wb2x5Z29uPjxyZWN0IHg9IjEiIHk9IjUiIHdpZHRoPSIxNSIgaGVpZ2h0PSIxNCIgcng9IjIiIHJ5PSIyIj48L3JlY3Q+PC9zdmc+"
-    } else if (activity.type === 3) {
-      // Watching fallback
-      activityImage =
-        "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iZmVhdGhlciBmZWF0aGVyLXR2Ij48cmVjdCB4PSIyIiB5PSI3IiB3aWR0aD0iMjAiIGhlaWdodD0iMTUiIHJ4PSIyIiByeT0iMiI+PC9yZWN0Pjxwb2x5bGluZSBwb2ludHM9IjE3IDIgMTIgNyA3IDIiPjwvcG9seWxpbmU+PC9zdmc+"
-    } else {
-      // Generic fallback
-      activityImage =
-        "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iZmVhdGhlciBmZWF0aGVyLWFjdGl2aXR5Ij48cG9seWxpbmUgcG9pbnRzPSIyMiAxMiAxOCAxMiAxNSAyMSA5IDMgNiAxMiAyIDEyIj48L3BvbHlsaW5lPjwvc3ZnPg=="
+    // Update progress immediately and then every second
+    updateSpotifyProgress(spotify);
+    spotifyUpdateInterval = setInterval(() => {
+        updateSpotifyProgress(spotify);
+    }, 1000);
+    
+    // Start progress validation (every 10 seconds)
+    progressValidationInterval = setInterval(validateSpotifyProgress, 10000);
+    
+    updateSyncIndicator('synced');
+}
+
+        // Modal functionality
+function initializeModal() {
+    const albumCover = document.getElementById('album-cover');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalImage = document.getElementById('modal-image');
+    const modalClose = document.getElementById('modal-close');
+    const modalSongTitle = document.getElementById('modal-song-title');
+    const modalSongDetails = document.getElementById('modal-song-details');
+
+    // Open modal when album cover is clicked
+    albumCover.addEventListener('click', () => {
+        modalImage.src = albumCover.src;
+        modalSongTitle.textContent = document.getElementById('song-title').textContent;
+        modalSongDetails.textContent = `${document.getElementById('song-artist').textContent} • ${document.getElementById('album-tooltip').textContent}`;
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
+
+    // Close modal
+    function closeModal() {
+        modalOverlay.classList.remove('active');
+        document.body.style.overflow = 'auto';
     }
-  }
 
-  // Create image element with error handling
-  const imageElement = `<img src="${activityImage}" alt="${activity.name || "Activity"}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iZmVhdGhlciBmZWF0aGVyLWFjdGl2aXR5Ij48cG9seWxpbmUgcG9pbnRzPSIyMiAxMiAxOCAxMiAxNSAyMSA5IDMgNiAxMiAyIDEyIj48L3BvbHlsaW5lPjwvc3ZnPg==';">`
+    modalClose.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            closeModal();
+        }
+    });
 
-  // Different formatting based on activity type
-  switch (activity.type) {
-    case 0: // Playing a game
-      // Store game data for elapsed time updates
-      gameData = {
-        gameName: activity.name,
-        details: activity.details,
-        state: activity.state,
-        startTime: activity.timestamps?.start,
-      }
-
-      activityContent = `
-                <div class="activity-details">
-                    ${imageElement}
-                    <div class="activity-info">
-                        <div class="activity-name">Playing ${activity.name}</div>
-                        ${activity.details ? `<div class="activity-state">${activity.details}</div>` : ""}
-                        ${activity.state ? `<div class="activity-state">${activity.state}</div>` : ""}
-                    </div>
-                </div>
-            `
-
-      // Add elapsed time display if start timestamp is available
-      if (gameData.startTime) {
-        activityContent += `
-                    <div class="game-time-container">
-                        <div class="game-time">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                            <span id="game-elapsed-time">Loading...</span>
-                        </div>
-                    </div>
-                `
-      }
-      break
-
-    case 2: // Listening to Spotify
-      // Store Spotify data for progress updates
-      spotifyData = {
-        songName: activity.details,
-        artist: activity.state,
-        album: activity.assets?.large_text,
-        startTime: activity.timestamps?.start,
-        endTime: activity.timestamps?.end,
-        duration: activity.timestamps ? activity.timestamps.end - activity.timestamps.start : 0,
-      }
-
-      // Format the Spotify activity content
-      activityContent = `
-                <div class="activity-details">
-                    ${imageElement}
-                    <div class="activity-info">
-                        <div class="activity-name">Listening to Spotify</div>
-                        ${activity.details ? `<div class="activity-state">${activity.details}</div>` : ""}
-                        ${activity.state ? `<div class="activity-state">${activity.state}</div>` : ""}
-                    </div>
-                </div>
-            `
-
-      // Add progress bar if timestamps are available
-      if (spotifyData.startTime && spotifyData.endTime) {
-        activityContent += `
-                    <div class="spotify-progress-container">
-                        <div class="spotify-progress-bar">
-                            <div class="spotify-progress-fill" id="spotify-progress-fill"></div>
-                        </div>
-                        <div class="spotify-timestamps">
-                            <span id="spotify-current-time">0:00</span>
-                            <span id="spotify-total-time">${formatTime((spotifyData.endTime - spotifyData.startTime) / 1000)}</span>
-                        </div>
-                    </div>
-                `
-      }
-      break
-
-    default:
-      activityContent = `
-                <div class="activity-details">
-                    ${imageElement}
-                    <div class="activity-info">
-                        <div class="activity-name">${getActivityTypeText(activity.type)} ${activity.name}</div>
-                        ${activity.details ? `<div class="activity-state">${activity.details}</div>` : ""}
-                        ${activity.state ? `<div class="activity-state">${activity.state}</div>` : ""}
-                    </div>
-                </div>
-            `
-  }
-
-  activityElement.innerHTML = activityContent
-
-  // Update progress based on activity type
-  if (spotifyData && spotifyData.startTime && spotifyData.endTime) {
-    // Update Spotify progress
-    updateSpotifyProgress()
-    progressInterval = setInterval(updateSpotifyProgress, 1000)
-  } else if (gameData && gameData.startTime) {
-    // Update game elapsed time
-    updateGameElapsedTime()
-    progressInterval = setInterval(updateGameElapsedTime, 1000)
-  }
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+            closeModal();
+        }
+    });
 }
 
-// Function to update Spotify progress bar
-function updateSpotifyProgress() {
-  if (!spotifyData || !spotifyData.startTime || !spotifyData.endTime) return
+// Avatar modal functionality
+function initializeAvatarModal() {
+    const avatar = document.getElementById('avatar');
+    const avatarModalOverlay = document.getElementById('avatar-modal-overlay');
+    const avatarModalImage = document.getElementById('avatar-modal-image');
+    const avatarModalClose = document.getElementById('avatar-modal-close');
+    const avatarModalUsername = document.getElementById('avatar-modal-username');
+    const avatarModalId = document.getElementById('avatar-modal-id');
+    const downloadAvatarBtn = document.getElementById('download-avatar');
+    const copyAvatarUrlBtn = document.getElementById('copy-avatar-url');
 
-  const now = Date.now()
-  const start = spotifyData.startTime
-  const end = spotifyData.endTime
-  const duration = end - start
+    let currentAvatarUrl = '';
+    let currentUsername = '';
+    let currentUserId = '';
 
-  // Calculate elapsed time in seconds
-  const elapsed = Math.max(0, now - start)
+    // Open avatar modal when avatar is clicked
+    avatar.addEventListener('click', () => {
+        currentAvatarUrl = avatar.src.replace('?size=256', '?size=1024'); // Get higher resolution
+        currentUsername = document.getElementById('username').textContent;
+        currentUserId = DISCORD_USER_ID;
 
-  // Calculate progress percentage
-  const progress = Math.min(100, (elapsed / duration) * 100)
+        avatarModalImage.src = currentAvatarUrl;
+        avatarModalUsername.textContent = currentUsername;
+        avatarModalId.textContent = `ID: ${currentUserId}`;
+        avatarModalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
 
-  // Update progress bar
-  const progressFill = document.getElementById("spotify-progress-fill")
-  if (progressFill) {
-    progressFill.style.width = `${progress}%`
-  }
+    // Close avatar modal
+    function closeAvatarModal() {
+        avatarModalOverlay.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
 
-  // Update current time
-  const currentTimeElement = document.getElementById("spotify-current-time")
-  if (currentTimeElement) {
-    currentTimeElement.textContent = formatTime(elapsed / 1000)
-  }
+    avatarModalClose.addEventListener('click', closeAvatarModal);
+    avatarModalOverlay.addEventListener('click', (e) => {
+        if (e.target === avatarModalOverlay) {
+            closeAvatarModal();
+        }
+    });
 
-  // If song has ended, refresh data
-  if (now >= end) {
-    clearInterval(progressInterval)
-    setTimeout(fetchDiscordData, 2000) // Refresh after 2 seconds
-  }
+    // Download avatar
+    downloadAvatarBtn.addEventListener('click', async () => {
+        try {
+            const response = await fetch(currentAvatarUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentUsername.replace(/[^a-zA-Z0-9]/g, '_')}_avatar.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            // Show success feedback
+            downloadAvatarBtn.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
+            setTimeout(() => {
+                downloadAvatarBtn.innerHTML = '<i class="fas fa-download"></i> Download Avatar';
+            }, 2000);
+        } catch (error) {
+            console.error('Download failed:', error);
+            downloadAvatarBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
+            setTimeout(() => {
+                downloadAvatarBtn.innerHTML = '<i class="fas fa-download"></i> Download Avatar';
+            }, 2000);
+        }
+    });
+
+    // Copy avatar URL
+    copyAvatarUrlBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(currentAvatarUrl);
+            copyAvatarUrlBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                copyAvatarUrlBtn.innerHTML = '<i class="fas fa-copy"></i> Copy URL';
+            }, 2000);
+        } catch (error) {
+            console.error('Copy failed:', error);
+            copyAvatarUrlBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
+            setTimeout(() => {
+                copyAvatarUrlBtn.innerHTML = '<i class="fas fa-copy"></i> Copy URL';
+            }, 2000);
+        }
+    });
+
+    // Close avatar modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && avatarModalOverlay.classList.contains('active')) {
+            closeAvatarModal();
+        }
+    });
 }
 
-// Function to update game elapsed time
-function updateGameElapsedTime() {
-  if (!gameData || !gameData.startTime) return
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            fetchDiscordData();
+            initializeModal();
+            initializeAvatarModal();
+            
+            // Refresh data every 5 seconds
+            setInterval(fetchDiscordData, 5000);
+            
+            // Check for song changes more frequently
+            spotifyCheckInterval = setInterval(checkForNewSpotifySong, 5000);
+        });
 
-  const now = Date.now()
-  const start = gameData.startTime
-
-  // Calculate elapsed time in seconds
-  const elapsed = Math.max(0, (now - start) / 1000)
-
-  // Update elapsed time display
-  const elapsedTimeElement = document.getElementById("game-elapsed-time")
-  if (elapsedTimeElement) {
-    elapsedTimeElement.textContent = formatElapsedTime(elapsed)
-  }
-}
-
-// Helper function to format time in MM:SS
-function formatTime(seconds) {
-  seconds = Math.floor(seconds)
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
-}
-
-// Helper function to format elapsed time in HH:MM:SS
-function formatElapsedTime(seconds) {
-  seconds = Math.floor(seconds)
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const remainingSeconds = seconds % 60
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
-  } else {
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
-  }
-}
-
-// Helper function to get activity type text
-function getActivityTypeText(type) {
-  switch (type) {
-    case 1:
-      return "Streaming"
-    case 3:
-      return "Watching"
-    default:
-      return ""
-  }
-}
-
-// Helper function to capitalize first letter
-function capitalizeFirstLetter(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1)
-}
-
-// Function to show error message
-function showError(message) {
-  const username = document.getElementById("username")
-  const status = document.getElementById("status")
-  const activity = document.getElementById("activity")
-
-  username.textContent = "Error"
-  status.textContent = message
-  activity.innerHTML = "<p>Could not load Discord data</p>"
-}
-
-// Initial fetch
-fetchDiscordData()
-
-// Refresh data every 5 seconds
-setInterval(fetchDiscordData, 5000)
+        // Add smooth scroll behavior
+        document.documentElement.style.scrollBehavior = 'smooth';
