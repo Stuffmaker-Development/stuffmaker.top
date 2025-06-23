@@ -871,3 +871,38 @@
                 opacity: 0;
             }
         }
+/*IPAD*/
+@media (max-width: 1024px) and (min-width: 600px) {
+    html, body {
+        height: 100vh;
+        min-height: 100vh;
+        overflow: hidden;
+    }
+    .container {
+        max-width: 95vw;
+        width: 100vw;
+        min-height: 90vh;
+        padding: 10px 0;
+    }
+    .glass-card {
+        padding: 18px;
+    }
+    .bio-section,
+    .activity-section,
+    .links-section {
+        margin: 12px 0;
+    }
+    .username {
+        font-size: 18px;
+    }
+    .bio-text {
+        font-size: 13px;
+    }
+    .link-label {
+        font-size: 11px;
+    }
+    .links-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+}
