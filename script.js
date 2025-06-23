@@ -599,3 +599,33 @@ function initializeAvatarModal() {
 
         // Add smooth scroll behavior
         document.documentElement.style.scrollBehavior = 'smooth';
+
+        // DATA LOAD
+        document.addEventListener("DOMContentLoaded", function() {
+    fetch('/links.json')
+        .then(response => response.json())
+        .then(links => {
+            const grid = document.getElementById('links-grid');
+            grid.innerHTML = '';
+            links.forEach(link => {
+                const a = document.createElement('a');
+                a.href = link.url;
+                a.className = 'link-item';
+                if (!link.url.startsWith('mailto:')) a.target = '_blank';
+
+                const icon = document.createElement('i');
+                icon.className = link.icon + ' link-icon';
+
+                const span = document.createElement('span');
+                span.className = 'link-label';
+                span.textContent = link.label;
+
+                a.appendChild(icon);
+                a.appendChild(span);
+                grid.appendChild(a);
+            });
+        })
+        .catch(err => {
+            console.error('Failed to load links:', err);
+        });
+});

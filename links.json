@@ -1,0 +1,22 @@
+[
+    {
+        "label": "GitHub",
+        "url": "https://github.com/MrStuffmaker",
+        "icon": "fab fa-github"
+    },
+    {
+        "label": "Telegram",
+        "url": "https://telegram.me/Remzcore",
+        "icon": "fab fa-telegram"
+    },
+    {
+        "label": "Instagram",
+        "url": "https://instagram.com/mr.stuffmaker",
+        "icon": "fab fa-instagram"
+    },
+    {
+        "label": "Email",
+        "url": "mailto:support@stuffmaker.org",
+        "icon": "fas fa-envelope"
+    }
+]
