@@ -1,4 +1,4 @@
- // Replace with your Discord User ID
+// Replace with your Discord User ID
         const DISCORD_USER_ID = '213586333677912064'; // My ID - replace with yours
         
         let spotifyUpdateInterval;
@@ -265,6 +265,7 @@
 
                 const user = data.data;
                 displayProfile(user);
+                displayLastfmActivity(user);
                 
             } catch (error) {
                 console.error('Error fetching Discord data:', error);
@@ -583,7 +584,45 @@ function initializeAvatarModal() {
     });
 }
 
-        // Initialize
+        // Display Last.fm-like activity from Discord data only if no Spotify activity
+function displayLastfmActivity(user) {
+    const lastfmSection = document.getElementById('lastfm');
+
+    // If Spotify is active, hide Last.fm section and return
+    if (user.spotify) {
+        lastfmSection.style.display = 'none';
+        return;
+    }
+
+    // Find the "Listening to" activity (type 2 is usually music, e.g., Spotify)
+    const musicActivity = user.activities.find(act => act.type === 2);
+
+    if (!musicActivity) {
+        // Hide section if not listening
+        lastfmSection.style.display = 'none';
+        return;
+    }
+
+    // Extract details 
+    const songName = musicActivity.details || 'Unknown Song';
+    const artist = musicActivity.state || 'Unknown Artist';
+    const album = musicActivity.assets?.large_text || '';
+    const coverUrl = musicActivity.assets?.large_image
+        ? (musicActivity.assets.large_image.startsWith('mp:external/')
+            ? `https://i.scdn.co/image/${musicActivity.assets.large_image.replace('mp:external/', '').replace(/[^a-zA-Z0-9]/g, '')}`
+            : musicActivity.assets.large_image)
+        : '';
+
+    // Update UI
+    document.getElementById('lastfm-song-title').textContent = songName;
+    document.getElementById('lastfm-song-artist').textContent = `by ${artist}`;
+    document.getElementById('lastfm-album-cover').src = coverUrl;
+    document.getElementById('lastfm-album-tooltip').textContent = album;
+
+    lastfmSection.style.display = 'block';
+}
+
+// Initialize
         document.addEventListener('DOMContentLoaded', () => {
             createParticles();
             fetchDiscordData();
