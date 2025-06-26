@@ -9,6 +9,12 @@
 </head>
     <script src="script.js"></script>
 <body>
+    <div id="site-preloader" style="position:fixed;z-index:9999;top:0;left:0;width:100vw;height:100vh;background:rgba(20,20,30,0.95);display:flex;align-items:center;justify-content:center;">
+    <div>
+        <i class="fas fa-spinner fa-spin" style="font-size:3rem;color:#fff;"></i>
+        <p style="color:#fff;text-align:center;">Loading...</p>
+    </div>
+</div>
     <div class="floating-particles" id="particles"></div>
     
     <div class="container">
@@ -43,7 +49,9 @@
             About Me
         </div>
         <div class="bio-text" id="bio-text">
-           btoa('RnVjayBtZQ==')
+           <script>
+            document.getElementById('bio-text').innerText = atob('VmVyeSBnYXkgdGV4dCBkZWNvZGVkIGZyb20gYXRvYg==');
+           </script><!--Bio text-->
         </div>
     </div>
 </div>
@@ -97,13 +105,17 @@
                             <i class="fab fa-telegram link-icon"></i>
                             <span class="link-label">Telegram</span>
                         </a>
-                        <a href="https://instagram.com/mr.stuffmaker" class="link-item" target="_blank">
+                        <!--<a href="https://instagram.com/mr.stuffmaker" class="link-item" target="_blank">
                             <i class="fab fa-instagram link-icon"></i>
                             <span class="link-label">Instagram</span>
-                        </a>
+                        </a>--> <!--Who uses insta anyways-->
                         <a href="mailto:support@stuffmaker.org" class="link-item">
                             <i class="fas fa-envelope link-icon"></i>
                             <span class="link-label">Email</span>
+                        </a>
+                        <a href="https://discord.fish/stuffmaker" class="link-item" target="_blank">
+                            <i class="fab fa-discord link-icon"></i>
+                            <span class="link-label">Discord</span>
                         </a>
                     </div>
                 </div>
@@ -147,4 +159,36 @@
 </div>
 
 </body>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    // Wait for all images (including background images) to load
+    const images = Array.from(document.images);
+    let loaded = 0;
+    if (images.length === 0) {
+        document.getElementById('site-preloader').style.display = 'none';
+        return;
+    }
+    images.forEach(img => {
+        if (img.complete) {
+            loaded++;
+            if (loaded === images.length) {
+                document.getElementById('site-preloader').style.display = 'none';
+            }
+        } else {
+            img.addEventListener('load', () => {
+                loaded++;
+                if (loaded === images.length) {
+                    document.getElementById('site-preloader').style.display = 'none';
+                }
+            });
+            img.addEventListener('error', () => {
+                loaded++;
+                if (loaded === images.length) {
+                    document.getElementById('site-preloader').style.display = 'none';
+                }
+            });
+        }
+    });
+});
+</script>
 </html>
