@@ -6,6 +6,13 @@
     <title>Stuffmaker</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+        <meta name="description" content="Stuffmaker's personal Discord profile page with dynamic activities and Spotify integration.">
+    <meta name="keywords" content="Stuffmaker, Discord, Profile, Spotify, Activities, Webpage">
+    <meta name="author" content="Stuffmaker">
+    <meta property="og:title" content="Stuffmaker's Discord Profile">
+    <meta property="og:description" content="Check out Stuffmaker's personal Discord profile">
+    <meta property="og:image" content="/img/logo.png">
+    <link rel="icon" href="/img/logo.png" type="image/x-icon">
 </head>
     <script src="script.js"></script>
 <body>
@@ -50,7 +57,9 @@
         </div>
         <div class="bio-text" id="bio-text">
            <script>
-            document.getElementById('bio-text').innerText = atob('VmVyeSBnYXkgdGV4dCBkZWNvZGVkIGZyb20gYXRvYg==');
+document.getElementById('bio-text').innerText = atob('RnVuZmFjdC4uLiB0aGlzIHRleHQgZ290IGRlY29kZWQgYnkgdGhlIHdlYiBBUEkgZnJvbSBhdG9i'); 
+// (Above: Fun logic which decrypts atob. Comment this line and uncomment the next line to use normal text)
+//          document.getElementById('bio-text').innerText = 'This is a description text'; 
            </script><!--Bio text-->
         </div>
     </div>
@@ -96,29 +105,10 @@
 </div>
 
                 <div class="links-section">
-                    <div class="links-grid"> <!--id="links-grid"-->
-                        <a href="https://github.com/MrStuffmaker" class="link-item" target="_blank">
-                            <i class="fab fa-github link-icon"></i>
-                            <span class="link-label">GitHub</span>
-                        </a>
-                        <a href="https://telegram.me/Remzcore" class="link-item" target="_blank">
-                            <i class="fab fa-telegram link-icon"></i>
-                            <span class="link-label">Telegram</span>
-                        </a>
-                        <!--<a href="https://instagram.com/mr.stuffmaker" class="link-item" target="_blank">
-                            <i class="fab fa-instagram link-icon"></i>
-                            <span class="link-label">Instagram</span>
-                        </a>--> <!--Who uses insta anyways-->
-                        <a href="mailto:support@stuffmaker.org" class="link-item">
-                            <i class="fas fa-envelope link-icon"></i>
-                            <span class="link-label">Email</span>
-                        </a>
-                        <a href="https://discord.fish/stuffmaker" class="link-item" target="_blank">
-                            <i class="fab fa-discord link-icon"></i>
-                            <span class="link-label">Discord</span>
-                        </a>
-                    </div>
-                </div>
+    <div class="links-grid" id="links-grid">
+        <!-- Buttons will be generated here -->
+    </div>
+</div>
             </div>
         </div>
     </div>
@@ -155,12 +145,104 @@
                 Copy URL
             </button>-->
         </div>
+        <!-- Stats for Nerds always visible, styled -->
+        <div class="stats-nerds-card" style="margin-top:1em;">
+            <div style="display:flex;align-items:center;margin-bottom:0.5em;">
+                <i class="fas fa-terminal" style="margin-right:0.5em;color:#4fc3f7;"></i>
+                <span style="font-weight:bold;font-size:1.1em;color:#e0e0e0">Stats for Nerds | Written Lines</span>
+                <br>
+            </div>
+            <div id="avatar-stats-lines" style="font-size:0.95em;color:#e0e0e0;"></div>
+        </div>
     </div>
 </div>
+
+<script>
+function countLines(text) {
+    return text.split(/\r?\n/).length;
+}
+
+async function getFileLines(url) {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return 0;
+        const text = await res.text();
+        return countLines(text);
+    } catch {
+        return 0;
+    }
+}
+
+async function showAvatarStats() {
+    const htmlLines = countLines(document.documentElement.outerHTML);
+    const cssLines = await getFileLines('styles.css');
+    const jsLines = await getFileLines('script.js');
+    const total = htmlLines + cssLines + jsLines;
+    document.getElementById('avatar-stats-lines').innerHTML =
+        `<b>HTML:</b> ${htmlLines}<br>
+         <b>CSS:</b> ${cssLines}<br>
+         <b>JS:</b> ${jsLines}<br>
+         <b>Total:</b> ${total}`;
+}
+
+// Show stats when avatar modal is opened
+document.getElementById('avatar-modal-overlay').addEventListener('transitionend', function() {
+    if (this.style.display !== 'none') showAvatarStats();
+});
+
+// Also show on DOMContentLoaded in case modal is already open
+window.addEventListener('DOMContentLoaded', showAvatarStats);
+</script>
 
 </body>
 <script>
 window.addEventListener('DOMContentLoaded', function() {
+    // Safari detection (both desktop and iOS)
+    var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if (isSafari) {
+        // Create system message popup (centered, modal style)
+        var popupBg = document.createElement('div');
+        popupBg.style.position = 'fixed';
+        popupBg.style.top = '0';
+        popupBg.style.left = '0';
+        popupBg.style.width = '100vw';
+        popupBg.style.height = '100vh';
+        popupBg.style.background = 'rgba(0,0,0,0.25)';
+        popupBg.style.zIndex = '10001';
+        popupBg.style.display = 'flex';
+        popupBg.style.alignItems = 'center';
+        popupBg.style.justifyContent = 'center';
+
+        var popup = document.createElement('div');
+        popup.style.background = '#fff';
+        popup.style.color = '#222';
+        popup.style.borderRadius = '12px';
+        popup.style.boxShadow = '0 4px 24px rgba(0,0,0,0.18)';
+        popup.style.padding = '2em 2.5em';
+        popup.style.maxWidth = '90vw';
+        popup.style.width = '350px';
+        popup.style.textAlign = 'center';
+        popup.style.position = 'relative';
+        popup.innerHTML = `
+            <i class="fas fa-exclamation-triangle" style="font-size:2.5rem;color:#ff8c00;margin-bottom:1rem;"></i>
+            <h3 style="margin:0 0 0.5em 0;">Safari Browser Warning</h3>
+            <div style="font-size:1em;margin-bottom:1.5em;">
+                This page may not work correctly on Apple Safari browsers due to the iOS 26 fuckup.<br>
+                Please use Chrome, Firefox, Brave, or another browser for best experience.
+            </div>
+            <button id="safari-popup-close" style="background:#ff8c00;color:#fff;border:none;padding:0.5em 1.2em;border-radius:6px;font-size:1em;cursor:pointer;">
+                OK
+            </button>
+        `;
+
+        popupBg.appendChild(popup);
+        document.body.appendChild(popupBg);
+
+        document.getElementById('safari-popup-close').onclick = function() {
+            popupBg.remove();
+        };
+    }
+
     // Wait for all images (including background images) to load
     const images = Array.from(document.images);
     let loaded = 0;
@@ -189,6 +271,25 @@ window.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+
+    // Fetch links from links.json and dynamically create buttons
+    fetch('links.json')
+        .then(response => response.json())
+        .then(links => {
+            const grid = document.getElementById('links-grid');
+            grid.innerHTML = ''; // Clear any existing content
+            links.forEach(link => {
+                const btn = document.createElement('button');
+                btn.className = 'link-item';
+                btn.innerHTML = `<i class="${link.icon} link-icon"></i><span class="link-label">${link.label}</span>`;
+                btn.onclick = () => window.open(link.url, '_blank');
+                // Special handling for email links
+                if (link.url.startsWith('mailto:')) {
+                    btn.onclick = () => window.location.href = link.url;
+                }
+                grid.appendChild(btn);
+            });
+        });
 });
 </script>
 </html>

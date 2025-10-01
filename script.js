@@ -280,7 +280,7 @@
             document.getElementById('profile').style.display = 'block';
 
             // Basic profile info
-            document.getElementById('avatar').src = `https://cdn.discordapp.com/avatars/${user.discord_user.id}/${user.discord_user.avatar}.png?size=256`;
+            document.getElementById('avatar').src = `https://cdn.discordapp.com/avatars/${user.discord_user.id}/${user.discord_user.avatar}.png?size=1024`;
             document.getElementById('username').textContent = user.discord_user.global_name || user.discord_user.username;
             document.getElementById('discriminator').textContent = `@${user.discord_user.username}`;
 
@@ -668,3 +668,51 @@ function displayLastfmActivity(user) {
             console.error('Failed to load links:', err);
         });
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const dcBtn = document.getElementById('dc-btn');
+    if (dcBtn) {
+        dcBtn.addEventListener('click', () => {
+            const url = dcBtn.getAttribute('data-url') || dcBtn.href || 'https://discord.fish/stuffmaker/';
+            window.open(url, '_blank');
+        });
+    }
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+    // Preloader logic
+    const images = Array.from(document.images);
+    let loaded = 0;
+    if (images.length === 0) {
+        document.getElementById('site-preloader').style.display = 'none';
+    }
+    images.forEach(img => {
+        if (img.complete) {
+            loaded++;
+            if (loaded === images.length) {
+                document.getElementById('site-preloader').style.display = 'none';
+            }
+        } else {
+            img.addEventListener('load', () => {
+                loaded++;
+                if (loaded === images.length) {
+                    document.getElementById('site-preloader').style.display = 'none';
+                }
+            });
+            img.addEventListener('error', () => {
+                loaded++;
+                if (loaded === images.length) {
+                    document.getElementById('site-preloader').style.display = 'none';
+                }
+            });
+   }
+  });
+// OTHER LOGIC DONT TOUCH 
+
+    // Discord avatar logic
+    // Replace these with your actual Discord user ID and avatar hash
+//    const discordUserId = 'YOUR_USER_ID';
+//    const discordAvatarHash = 'YOUR_AVATAR_HASH';
+//    const avatarUrl = `https://cdn.discordapp.com/avatars/${discordUserId}/${discordAvatarHash}.png?size=1024`;
+//    document.getElementById('avatar').src = avatarUrl;
+ });
