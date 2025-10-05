@@ -87,6 +87,7 @@ document.getElementById('bio-text').innerText = atob('RnVuZmFjdC4uLiB0aGlzIHRleH
         <div class="album-cover-container">
             <img id="album-cover" class="album-cover" src="/img/loader.gif" alt="Album Cover">
             <div class="tooltip" id="album-tooltip"></div>
+            <!-- Download button removed from here -->
         </div>
         <div class="song-details">
             <div class="song-info">
@@ -122,6 +123,10 @@ document.getElementById('bio-text').innerText = atob('RnVuZmFjdC4uLiB0aGlzIHRleH
         <div class="modal-info">
             <div class="modal-song-title" id="modal-song-title"></div>
             <div class="modal-song-details" id="modal-song-details"></div>
+            <!-- Move download button INSIDE modal-info, below song details -->
+            <button id="download-cover-btn" style="margin-top:1em;padding:0.4em 1em;border-radius:6px;background:#1db954;color:#fff;border:none;cursor:pointer;font-size:0.95em;">
+                <i class="fas fa-download"></i> Download Cover
+            </button>
         </div>
     </div>
 </div>
@@ -290,6 +295,32 @@ window.addEventListener('DOMContentLoaded', function() {
                 grid.appendChild(btn);
             });
         });
+});
+</script>
+<script>
+// Download Spotify album cover function
+document.addEventListener('DOMContentLoaded', function() {
+    const downloadBtn = document.getElementById('download-cover-btn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+            const img = document.getElementById('modal-image');
+            if (!img || !img.src || img.src.endsWith('loader.gif')) return;
+            fetch(img.src)
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'spotify-cover.jpg';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                });
+        });
+    }
 });
 </script>
 </html>
