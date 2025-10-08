@@ -5,18 +5,28 @@
         "icon": "fab fa-github"
     },
     {
+        "label": "Donate",
+        "url": "https://paypal.me/mrstuffmaker",
+        "icon": "fab fa-paypal"
+    },
+    {
         "label": "Telegram",
         "url": "https://telegram.me/Remzcore",
         "icon": "fab fa-telegram"
     },
     {
-        "label": "Instagram",
-        "url": "https://instagram.com/mr.stuffmaker",
-        "icon": "fab fa-instagram"
-    },
-    {
         "label": "Email",
         "url": "mailto:support@stuffmaker.org",
         "icon": "fas fa-envelope"
+    },
+    {
+        "label": "Mastodon",
+        "url": "https://mastodon.social/@stuffmaker",
+        "icon": "fab fa-mastodon"
+    },
+    {
+        "label": "Discord",
+        "url": "https://discord.fish/stuffmaker",
+        "icon": "fab fa-discord"
     }
 ]
