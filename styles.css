@@ -1,4 +1,4 @@
-  * {
+* {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -994,4 +994,29 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.version-info {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.version-info i {
+    font-size: 0.9em;
+}
+
+.version-info:hover {
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.5);
+    transition: all 0.2s ease;
 }

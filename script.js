@@ -48,7 +48,7 @@
             if (!currentSpotifyData) return;
             
             try {
-                const response = await fetch(`https://api.stuffmaker.top/v1/users/${DISCORD_USER_ID}`);
+                const response = await fetch(`https://api.lanyard.rest/v1/users/${DISCORD_USER_ID}`);
                 const data = await response.json();
                 
                 if (!data.success || !data.data.spotify) {
@@ -135,7 +135,7 @@
         // Check if Spotify song has changed
         async function checkForNewSpotifySong() {
             try {
-                const response = await fetch(`https://api.stuffmaker.top/v1/users/${DISCORD_USER_ID}`);
+                const response = await fetch(`https://api.lanyard.rest/v1/users/${DISCORD_USER_ID}`);
                 const data = await response.json();
                 
                 if (!data.success) {
@@ -256,7 +256,7 @@
         // Fetch Discord data from Lanyard API
         async function fetchDiscordData() {
             try {
-                const response = await fetch(`https://api.stuffmaker.top/v1/users/${DISCORD_USER_ID}`);
+                const response = await fetch(`https://api.lanyard.rest/v1/users/${DISCORD_USER_ID}`);
                 const data = await response.json();
                 
                 if (!data.success) {

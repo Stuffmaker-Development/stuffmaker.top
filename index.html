@@ -39,11 +39,11 @@
             <div id="profile" style="display: none;">
                 <div class="profile-header">
                     <div class="avatar-container">
-                        <img id="avatar" class="avatar" src="/img/loader.gif" alt="Avatar">
-                        <div id="status" class="status-indicator"></div>
-                    </div>
-                    <div id="username" class="username"></div>
-                    <div id="discriminator" class="discriminator"></div>
+                            <img id="avatar" class="avatar" src="/img/loader.gif" alt="Avatar">
+                            <div id="status" class="status-indicator" style="margin-top:-30px;"></div>
+                        </div>
+                     <div id="username" class="username"></div>
+                     <div id="discriminator" class="discriminator"></div>
                 <div class="platform-indicators" id="platform-indicators">
     <!-- Platform icons will be dynamically added here -->
 </div>
@@ -112,6 +112,10 @@ document.getElementById('bio-text').innerText = atob('SSBkbyBzdHVmZiBvbiB0aGUgaW
 </div>
             </div>
         </div>
+        <div class="version-info" id="version-info" style="cursor: pointer;">
+    <i class="fas fa-code-branch"></i>
+    <span id="commit-hash">Loading...</span>
+</div>
     </div>
 
     <div id="modal-overlay" class="modal-overlay">
@@ -322,5 +326,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+</script>
+<script>
+// Fetch the latest commit hash from GitHub API
+let commitUrl = '';
+
+fetch('https://api.github.com/repos/Stuffmaker-Development/stuffmaker.top/commits')
+    .then(response => response.json())
+    .then(data => {
+        if (data && data[0] && data[0].sha) {
+            const shortHash = data[0].sha.substring(0, 7);
+            document.getElementById('commit-hash').textContent = shortHash;
+            commitUrl = data[0].html_url;
+            
+            document.getElementById('version-info').addEventListener('click', () => {
+                window.open(commitUrl, '_blank');
+            });
+        } else {
+            throw new Error('Invalid response format');
+        }
+    })
+    .catch(error => {
+        document.getElementById('commit-hash').textContent = 'Unknown';
+        console.error('Failed to fetch commit hash:', error);
+    });
 </script>
 </html>
